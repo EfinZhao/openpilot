@@ -8,6 +8,7 @@ import openpilot.cereal.messaging as messaging
 from openpilot.cereal import log
 from opendbc.car.structs import car
 
+from openpilot.common.constants import CV
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper
 from openpilot.common.swaglog import cloudlog, ForwardingHandler
@@ -65,7 +66,7 @@ class Car:
 
   def __init__(self, CI=None, RI=None) -> None:
     self.can_sock = messaging.sub_sock('can', timeout=20)
-    self.sm = messaging.SubMaster(['pandaStates', 'carControl', 'onroadEvents'])
+    self.sm = messaging.SubMaster(['pandaStates', 'carControl', 'onroadEvents', 'advisorySpeedLimit'])
     self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'])
 
     self.can_rcv_cum_timeout_counter = 0
@@ -171,6 +172,9 @@ class Car:
 
     self.sm.update(0)
 
+    asl = self.sm['advisorySpeedLimit']
+    asl_target_kph = asl.speed * CV.MPH_TO_KPH if asl.valid and self.sm.valid['advisorySpeedLimit'] else None
+
     can_rcv_valid = len(can_strs) > 0
 
     # Check for CAN timeout
@@ -184,6 +188,10 @@ class Car:
     if self.sm['carControl'].enabled and not self.CC_prev.enabled:
       # Use CarState w/ buttons from the step selfdrived enables on
       self.v_cruise_helper.initialize_v_cruise(self.CS_prev, self.experimental_mode)
+
+    if asl_target_kph is not None:
+      self.v_cruise_helper.v_cruise_kph = asl_target_kph
+      self.v_cruise_helper.v_cruise_cluster_kph = asl_target_kph
 
     # TODO: mirror the carState.cruiseState struct?
     CS.vCruise = float(self.v_cruise_helper.v_cruise_kph)

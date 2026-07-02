@@ -82,6 +82,8 @@ _services: dict[str, tuple] = {
   "wideRoadEncodeData": (False, 20., None, QueueSize.BIG),
   "qRoadEncodeData": (False, 20., None, QueueSize.BIG),
 
+  "advisorySpeedLimit": (True, 2., 1.),
+
   # debug
   "uiDebug": (True, 0., 1),
   "testJoystick": (True, 0.),

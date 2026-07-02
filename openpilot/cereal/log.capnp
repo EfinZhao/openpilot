@@ -2433,6 +2433,11 @@ struct NavInstruction {
   }
 }
 
+struct AdvisorySpeedLimit {
+  speed @0 :Float32;
+  valid @1 :Bool;
+}
+
 struct NavRoute {
   coordinates @0 :List(Coordinate);
 
@@ -2607,7 +2612,7 @@ struct Event {
     # DO change the name of the field and struct
     # DON'T change the ID (e.g. @107)
     # DON'T change which struct it points to
-    customReserved0 @107 :Custom.CustomReserved0;
+    advisorySpeedLimit @107 :AdvisorySpeedLimit;
     customReserved1 @108 :Custom.CustomReserved1;
     customReserved2 @109 :Custom.CustomReserved2;
     customReserved3 @110 :Custom.CustomReserved3;
