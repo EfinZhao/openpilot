@@ -16,7 +16,6 @@ dependencies = [
   "sympy",        # rednose + friends
   "crcmod-plus",  # cars + qcomgpsd
   "tqdm",         # cars (fw_versions.py) on start + many one-off uses
-
   # core
   "cffi",
   "scons",
@@ -24,7 +23,6 @@ dependencies = [
   "Cython",
   "setuptools",
   "numpy >=2.0",
-
   # vendored native dependencies
   "bzip2 @ git+https://github.com/commaai/dependencies.git@release-bzip2#subdirectory=bzip2",
   "bootstrap-icons @ git+https://github.com/commaai/dependencies.git@release-bootstrap-icons#subdirectory=bootstrap-icons",
@@ -43,41 +41,34 @@ dependencies = [
   "git-lfs @ git+https://github.com/commaai/dependencies.git@release-git-lfs#subdirectory=git-lfs",
   "gcc-arm-none-eabi @ git+https://github.com/commaai/dependencies.git@release-gcc-arm-none-eabi#subdirectory=gcc-arm-none-eabi",
   "xvfb @ git+https://github.com/commaai/dependencies.git@release-xvfb#subdirectory=xvfb",
-
   # body / webrtcd
   "av",
   "aiortc",
-
   # panda
   "libusb1",
   "spidev; platform_system == 'Linux'",
-
   # logging
   "pyzmq",
   "sentry-sdk",
   "xattr",  # used in place of 'os.getxattr' for macOS compatibility
-
   # athena
   "PyJWT",
   "json-rpc",
   "websocket_client",
-
   # joystickd
   "inputs",
-
   # these should be removed
   "psutil",
   "pycryptodome", # used in panda, body, and a test
   "setproctitle",
-
   # logreader
   "zstandard",
-
   # ui
   "raylib @ git+https://github.com/commaai/dependencies.git@release-raylib#subdirectory=raylib",
   "qrcode",
   "jeepney",
   "pillow",
+  "paho-mqtt>=2.1.0",
 ]
 
 [project.optional-dependencies]
@@ -180,13 +171,13 @@ lint.ignore = [
   "NPY002",  # new numpy random syntax is worse
   "UP045", "UP007",  # these don't play nice with raylib atm
 ]
+lint.flake8-implicit-str-concat.allow-multiline = false
 line-length = 160
 exclude = [
   "openpilot/cereal",
   "*.ipynb",
   "generated",
 ]
-lint.flake8-implicit-str-concat.allow-multiline = false
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "pytest.main".msg = "pytest.main requires special handling that is easy to mess up!"
