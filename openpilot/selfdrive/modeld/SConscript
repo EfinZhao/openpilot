@@ -36,7 +36,7 @@ def probe_devices():
 available = probe_devices()
 if 'CUDA' in available:
   tg_backend = 'CUDA'
-  tg_flags = f'DEV={tg_backend}'
+  tg_flags = f'DEV={tg_backend} JIT_BATCH_SIZE=0'
 elif 'QCOM' in available:
   tg_backend = 'QCOM'
   tg_flags = f'DEV={tg_backend} IMAGE=1 FLOAT16=1 NOLOCALS=1 JIT_BATCH_SIZE=0 OPENPILOT_HACKS=1'

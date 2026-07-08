@@ -53,6 +53,18 @@ from tinygrad.device import Device
 from tinygrad.engine.jit import TinyJit
 
 
+def _disable_device_graph():
+  try:
+    dev = Device[Device.DEFAULT]
+    if getattr(dev, "graph", None) is not None:
+      dev.graph = None
+      print(f"[patch] disabled graph capture on {Device.DEFAULT}")
+    else:
+      print(f"[patch] no graph attr on {Device.DEFAULT} (attr may have moved)")
+  except Exception as e:
+    print(f"[patch] could not disable graph: {e}")
+
+
 NV12Frame = namedtuple("NV12Frame", ['width', 'height', 'stride', 'y_height', 'uv_height', 'size'])
 WARP_INPUTS = ['tfm', 'big_tfm']
 POLICY_INPUTS = ['img_q', 'big_img_q', 'feat_q', 'desire_q', 'packed_npy_inputs']
@@ -299,6 +311,7 @@ def read_file_chunked_to_disk(path):
 
 
 if __name__ == "__main__":
+  _disable_device_graph()
   from tinygrad.nn.onnx import OnnxRunner
   from openpilot.system.camerad.cameras.nv12_info import get_nv12_info
   from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict

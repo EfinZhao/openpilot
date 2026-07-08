@@ -102,13 +102,12 @@ class ModelState:
   def run(self, bufs: dict[str, VisionBuf], transforms: dict[str, np.ndarray],
           inputs: dict[str, np.ndarray]) -> dict[str, np.ndarray] | None:
     for key in bufs.keys():
-      ptr = np.frombuffer(bufs[key].data, dtype=np.uint8).ctypes.data
+      # ptr = np.frombuffer(bufs[key].data, dtype=np.uint8).ctypes.data
       yuv_size = self.frame_buf_params[key][3]
-      # There is a ringbuffer of imgs, just cache tensors pointing to all of them
-      cache_key = (key, ptr)
-      if cache_key not in self._blob_cache:
-        self._blob_cache[cache_key] = Tensor.from_blob(ptr, (yuv_size,), dtype='uint8', device=self.WARP_DEV)
-      self.full_frames[key] = self._blob_cache[cache_key]
+      # WSL2/CUDA: VisionIPC buffers are host memory the GPU can't address, so the zero-copy
+      # from_blob path (valid on QCOM's GPU-shared buffers) faults. Copy to the device instead.
+      frame_np = np.frombuffer(bufs[key].data, dtype=np.uint8)[:yuv_size].copy()
+      self.full_frames[key] = Tensor(frame_np, device=self.WARP_DEV).realize()
 
     # Model decides when action is completed, so desire input is just a pulse triggered on rising edge
     inputs['desire_pulse'][0] = 0
