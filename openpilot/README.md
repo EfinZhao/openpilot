@@ -10,6 +10,8 @@
   This README explains how to properly use the ASL mod helper scripts
 </p>
 
+</div>
+
 Using `asl_helper.py`
 -----
 
