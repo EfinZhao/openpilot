@@ -72,21 +72,27 @@ def on_message(client, userdata, msg: mqtt.MQTTMessage):
     messenger = userdata["messenger"]
     args      = userdata["args"]
 
-    msg_str: str = msg.payload.decode('utf-8')
+    try:
+        msg_str: str = msg.payload.decode('utf-8')
+        if args.verbose:
+            print(f"[i] Recieved: {msg_str}")
+        msg_json: dict = json.loads(msg_str)
+        in_range = msg_json["in_range"]
+    except (UnicodeDecodeError, json.JSONDecodeError, KeyError) as e:
+        print(f"[!] Bad payload, skipping: {e}")
 
-    if args.verbose:
-        print(f"[i] Recieved: {msg_str}")
+    if not in_range:
+        return
 
-    msg_json: dict = json.loads(msg_str)
-    if msg_json["in_range"]:
+    for approach in msg_json["raw"]["approach_moves"]:
         try:
-            for approach in msg_json["raw"]["approach_moves"]:
-                if int(approach["approach"]) % 2 == 0:             # even approaches are straights, odd are left turn. We want straights!
-                    asl: int = round(approach["asl"])
-                    print(f"[i] ASL found! {asl}")
-                    messenger.publish_asl(asl)
-        except Exception as e:
-            print(f"[!] ERROR: {e}")
+            if int(approach["approach"]) % 2 == 0:             # even approaches are straights, odd are left turn. We want straights!
+                asl: int = round(approach["asl"])
+                print(f"[i] ASL found! {asl}")
+                messenger.publish_asl(asl)
+        except (KeyError, ValueError, TypeError) as e:
+            print(f"[!] Bad approach entry, skipping: {e}")
+            continue
 
 
 def main():
@@ -119,6 +125,9 @@ def main():
 
     try:
         while True:
+            if not client._thread or not client._thread.is_alive():
+                print("[!] Network loop died! Exiting!")
+                raise SystemExit(1)
             time.sleep(0.1)
     except KeyboardInterrupt:
         print("[i] Stopping client...")
