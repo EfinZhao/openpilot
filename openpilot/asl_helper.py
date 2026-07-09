@@ -112,12 +112,10 @@ def main():
     client.on_connect = on_connect
     client.on_message = on_message
 
+    mqtt_args['messenger'] = Messenger(dry_run = args.dry_run)
+
     client.connect(f"{MQTT_LISTEN_IP}", MQTT_LISTEN_PORT, MQTT_KEEP_ALIVE)
-
     client.loop_start()
-
-    messenger = Messenger(dry_run = args.dry_run)
-    mqtt_args['messenger'] = messenger
 
     try:
         while True:
