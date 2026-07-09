@@ -42,20 +42,21 @@ def parse():
 
 
 class Messenger:
-    def __init__(self):
+    def __init__(self, dry_run: bool = False):
         self.speed = 0
+        self.dry_run = dry_run
         self.pm = messaging.PubMaster(['advisorySpeedLimit'])
 
     def publish_asl(self, speed: int):
-        msg = messaging.new_message('advisorySpeedLimit')
-
         if speed is not None:
             self.speed = speed
+        if self.dry_run:
+            return
 
+        msg = messaging.new_message('advisorySpeedLimit')
         msg.advisorySpeedLimit.speed = self.speed
         msg.valid = True
         msg.advisorySpeedLimit.valid = True
-
         self.pm.send('advisorySpeedLimit', msg)
 
 
@@ -83,8 +84,7 @@ def on_message(client, userdata, msg: mqtt.MQTTMessage):
                 if int(approach["approach"]) % 2 == 0:             # even approaches are straights, odd are left turn. We want straights!
                     asl: int = round(approach["asl"])
                     print(f"[i] ASL found! {asl}")
-                    if not args.dry_run:
-                        messenger.publish_asl(asl)
+                    messenger.publish_asl(asl)
         except Exception as e:
             print(f"[!] ERROR: {e}")
 
@@ -116,9 +116,8 @@ def main():
 
     client.loop_start()
 
-    if not args.dry_run:
-        messenger = Messenger()
-        mqtt_args['messenger'] = messenger
+    messenger = Messenger(dry_run = args.dry_run)
+    mqtt_args['messenger'] = messenger
 
     try:
         while True:
