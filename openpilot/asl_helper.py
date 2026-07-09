@@ -102,7 +102,9 @@ def on_message(client, userdata, msg: mqtt.MQTTMessage):
         for approach in msg_json["raw"]["approach_moves"]:
             if int(approach["approach"]) % 2 == 0:             # even approaches are straights, odd are left turn. We want straights!
                 asl: int = round(approach["asl"])
-                print(f"{BLUE}[i] ASL found! {asl}{RESET}")
+                print(f"[.]] ASL Found! {asl}")
+                asl = max(asl, 35)                             # TODO: The minimum ASL speed should be determined by the approach we are on
+                print(f"{BLUE}[i] Publishing: {asl}{RESET}")
                 messenger.publish_asl(asl)
     except (KeyError, ValueError, TypeError) as e:
         print(f"{YELLOW}[!] Bad approach entry, skipping: {e}{RESET}")
