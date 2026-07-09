@@ -58,7 +58,7 @@ class Messenger:
     def __init__(self, dry_run: bool = False):
         self.speed = 0
         self.dry_run = dry_run
-        self.pm = messaging.PubMaster(['advisorySpeedLimit'])
+        self.pm = None if dry_run else messaging.PubMaster(['advisorySpeedLimit'])
 
     def publish_asl(self, speed: int):
         if speed is not None:
@@ -86,6 +86,10 @@ def on_message(client, userdata, msg: mqtt.MQTTMessage):
     messenger = userdata["messenger"]
     args      = userdata["args"]
 
+    _process_asl_message(msg)
+
+
+def _process_asl_message(msg: mqtt.MQTTMessage):
     try:
         msg_str: str = msg.payload.decode('utf-8')
         if args.verbose:
