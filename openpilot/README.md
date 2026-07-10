@@ -20,8 +20,12 @@ Using `asl_helper.py`
 To run `asl_helper.py`, you MUST provide it with the IP of the MQTT server that ASL messages are being posted to. The run command will look like this: `./asl_helper.py xxx.xxx.xxx.xxx`.
 
 `asl_helper.py` has optional flags that allow you to adjust its behavior.
-1. **`--dry-run`:** This runs `asl_helper.py` in dry run mode, meaning that it will only print the ASL messages to the terminal, prevent actually sending the messages to openpilot. This is good for testing the reception of ASL messages in a safe way.
-2. **`-v`** or **`--verbose`:** This runs `asl_helper.py` in verbose mode, allowing you to see detailed debug information.
+1. **`-i intersection_name` or `--intersection intersection_name`:** This runs `asl_helper.py` with a specified intersection to pull intersection minimum speeds from. If this flag is left unset, then `asl_helper.py` will default to using the intersection between Harvard and University.
+2. **`--dry-run`:** This runs `asl_helper.py` in dry run mode, meaning that it will only print the ASL messages to the terminal, prevent actually sending the messages to openpilot. This is good for testing the reception of ASL messages in a safe way.
+3. **`-v`** or **`--verbose`:** This runs `asl_helper.py` in verbose mode, allowing you to see detailed debug information.
+
+`asl.toml` is the configuration file for `asl_helper.py` and contains the following settings:
+1. The minimum speed for supported intersections and their straight approaches.
 
 ### How it works
 
