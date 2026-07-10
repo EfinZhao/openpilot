@@ -5,6 +5,7 @@ from cereal import messaging
 import argparse
 import json
 import time
+import tomllib
 import threading
 import paho.mqtt.client as mqtt
 
@@ -29,6 +30,11 @@ def parse():
     parser.add_argument(
         "ip",
         help="IP of the MQTT server for openpilot to recieve ASL messages from"
+    )
+
+    parser.add_argument(
+        '-i', '--intersection',
+        type=str
     )
 
     parser.add_argument(
@@ -98,6 +104,12 @@ def on_connect(client, userdata, flags, rc, properties=None):
 def on_message(client, userdata, msg: mqtt.MQTTMessage):
     messenger = userdata["messenger"]
     args      = userdata["args"]
+    data      = userdata["data"]
+
+    if args.intersection:
+        intersection = args.intersection
+    else:
+        intersection = "harvard_university"
 
     try:
         msg_str: str = msg.payload.decode('utf-8')
@@ -113,10 +125,14 @@ def on_message(client, userdata, msg: mqtt.MQTTMessage):
 
     try:
         for approach in msg_json["raw"]["approach_moves"]:
-            if int(approach["approach"]) % 2 == 0:             # even approaches are straights, odd are left turn. We want straights!
+            approach_num = int(approach["approach"])
+            if approach_num % 2 == 0:             # even approaches are straights, odd are left turn. We want straights!
                 asl: int = round(approach["asl"])
                 print(f"[.] ASL Found! {asl}")
-                asl = max(asl, 35)                             # TODO: The minimum ASL speed should be determined by the approach we are on
+                minASL = data["intersection"][intersection][f"{approach_num}"]
+                if args.verbose:
+                    print(f"[!] Minimum speed for approach {approach_num} found: {minASL}")
+                asl = max(asl, minASL)                             # TODO: The minimum ASL speed should be determined by the approach we are on
                 print(f"{BLUE}[i] Publishing: {asl}{RESET}")
                 messenger.publish_asl(asl)
     except (KeyError, ValueError, TypeError) as e:
@@ -133,9 +149,13 @@ def main():
     if args.verbose:
         print(f"[.] {MQTT_LISTEN_IP=}")
 
+    with open("asl.toml", 'rb') as f:
+        data = tomllib.load(f)
+
     mqtt_args = {
         "messenger": None,
-        "args": args
+        "args": args,
+        "data": data,
     }
 
     client = mqtt.Client(
