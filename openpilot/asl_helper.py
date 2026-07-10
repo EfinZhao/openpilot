@@ -14,6 +14,8 @@ YELLOW = '\033[33m'
 BLUE   = '\033[34m'
 RESET  = '\033[0m'
 
+ASL_TIMEOUT = 5.0
+
 
 # ================================================================================================ #
 
@@ -59,8 +61,10 @@ class Messenger:
         self.speed = 0
         self.dry_run = dry_run
         self.pm = None if dry_run else messaging.PubMaster(['advisorySpeedLimit'])
+        self.last_asl_time = time.monotonic()
 
-    def publish_asl(self, speed: int):
+    def publish_asl(self, speed: int) -> None:
+        self.last_asl_time = time.monotonic()
         if speed is not None:
             self.speed = speed
         if self.dry_run:
@@ -70,6 +74,15 @@ class Messenger:
         msg.advisorySpeedLimit.speed = self.speed
         msg.valid = True
         msg.advisorySpeedLimit.valid = True
+        self.pm.send('advisorySpeedLimit', msg)
+
+    def publish_asl_lost(self) -> None:
+        if self.dry_run:
+            return
+        msg = messaging.new_message('advisorySpeedLimit')
+        msg.advisorySpeedLimit.speed = 0
+        msg.valid = False
+        msg.advisorySpeedLimit.valid = False
         self.pm.send('advisorySpeedLimit', msg)
 
 
@@ -86,10 +99,6 @@ def on_message(client, userdata, msg: mqtt.MQTTMessage):
     messenger = userdata["messenger"]
     args      = userdata["args"]
 
-    _process_asl_message(msg)
-
-
-def _process_asl_message(msg: mqtt.MQTTMessage):
     try:
         msg_str: str = msg.payload.decode('utf-8')
         if args.verbose:
@@ -106,7 +115,7 @@ def _process_asl_message(msg: mqtt.MQTTMessage):
         for approach in msg_json["raw"]["approach_moves"]:
             if int(approach["approach"]) % 2 == 0:             # even approaches are straights, odd are left turn. We want straights!
                 asl: int = round(approach["asl"])
-                print(f"[.]] ASL Found! {asl}")
+                print(f"[.] ASL Found! {asl}")
                 asl = max(asl, 35)                             # TODO: The minimum ASL speed should be determined by the approach we are on
                 print(f"{BLUE}[i] Publishing: {asl}{RESET}")
                 messenger.publish_asl(asl)
@@ -137,7 +146,9 @@ def main():
     client.on_connect = on_connect
     client.on_message = on_message
 
-    mqtt_args['messenger'] = Messenger(dry_run = args.dry_run)
+    messenger = Messenger(dry_run = args.dry_run)
+
+    mqtt_args['messenger'] = messenger
 
     try:
         client.connect(f"{MQTT_LISTEN_IP}", MQTT_LISTEN_PORT, MQTT_KEEP_ALIVE)
@@ -146,8 +157,18 @@ def main():
         print(f"{RED}[!] Could not connect to {MQTT_LISTEN_IP}! {e}{RESET}")
         raise SystemExit(1)
 
+    asl_lost = False
+
     try:
         while True:
+            elapsed = time.monotonic() - messenger.last_asl_time
+            if elapsed > ASL_TIMEOUT:
+                if not asl_lost:
+                    asl_lost = True
+                    print(f"{YELLOW} No ASL found for {ASL_TIMEOUT}s! Chill mode disengaging now!{RESET}")
+                messenger.publish_asl_lost()
+            else:
+                asl_lost
             if connection_failed.is_set():
                 print(f"{RED}[!] Network loop died! Exiting!{RESET}")
                 raise SystemExit(1)

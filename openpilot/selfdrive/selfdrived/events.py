@@ -649,6 +649,11 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.NO_ENTRY: NoEntryAlert("Camera Frame Rate Low: Reboot Your Device"),
   },
 
+  EventName.advisorySpeedLost: {
+    ET.USER_DISABLE: EngagementAlert(AudibleAlert.disengage),
+    ET.NO_ENTRY: NoEntryAlert("ASL Data Lost")
+  },
+
   # Unused
 
   EventName.locationdTemporaryError: {

@@ -132,6 +132,7 @@ struct OnroadEvent @0xc4fa6047f024e718 {
     userBookmark @95;
     excessiveActuation @96;
     audioFeedback @97;
+    advisorySpeedLost @100;
 
     soundsUnavailableDEPRECATED @47;
   }
@@ -2613,7 +2614,7 @@ struct Event {
     # DON'T change the ID (e.g. @107)
     # DON'T change which struct it points to
     advisorySpeedLimit @107 :AdvisorySpeedLimit;
-    customReserved1 @108 :Custom.CustomReserved1;
+    customReserved1  @108 :Custom.CustomReserved1;
     customReserved2 @109 :Custom.CustomReserved2;
     customReserved3 @110 :Custom.CustomReserved3;
     customReserved4 @111 :Custom.CustomReserved4;
