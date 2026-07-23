@@ -15,9 +15,6 @@ YELLOW = '\033[33m'
 BLUE   = '\033[34m'
 RESET  = '\033[0m'
 
-ASL_TIMEOUT = 5.0
-
-
 # ================================================================================================ #
 
 
@@ -67,7 +64,6 @@ class Messenger:
         self.speed = 0
         self.dry_run = dry_run
         self.pm = None if dry_run else messaging.PubMaster(['advisorySpeedLimit'])
-        self.last_asl_time = time.monotonic()
 
     def publish_asl(self, speed: int) -> None:
         self.last_asl_time = time.monotonic()
@@ -80,15 +76,6 @@ class Messenger:
         msg.advisorySpeedLimit.speed = self.speed
         msg.valid = True
         msg.advisorySpeedLimit.valid = True
-        self.pm.send('advisorySpeedLimit', msg)
-
-    def publish_asl_lost(self) -> None:
-        if self.dry_run:
-            return
-        msg = messaging.new_message('advisorySpeedLimit')
-        msg.advisorySpeedLimit.speed = 0
-        msg.valid = False
-        msg.advisorySpeedLimit.valid = False
         self.pm.send('advisorySpeedLimit', msg)
 
 
@@ -106,6 +93,10 @@ def on_message(client, userdata, msg: mqtt.MQTTMessage):
     args      = userdata["args"]
     data      = userdata["data"]
 
+    _process_asl_message(messenger, msg, args, data)
+
+
+def _process_asl_message(messenger, msg: mqtt.MQTTMessage, args, data):
     if args.intersection:
         intersection = args.intersection
     else:
@@ -119,8 +110,6 @@ def on_message(client, userdata, msg: mqtt.MQTTMessage):
         in_range = msg_json["in_range"]
     except (UnicodeDecodeError, json.JSONDecodeError, KeyError) as e:
         print(f"{YELLOW}[!] Bad payload, skipping: {e}{RESET}")
-
-    if not in_range:
         return
 
     try:
@@ -152,23 +141,18 @@ def main():
     with open("asl.toml", 'rb') as f:
         data = tomllib.load(f)
 
+    messenger = Messenger(dry_run = args.dry_run)
+
     mqtt_args = {
-        "messenger": None,
+        "messenger": messenger,
         "args": args,
         "data": data,
     }
 
-    client = mqtt.Client(
-        callback_api_version = mqtt.CallbackAPIVersion.VERSION2,
-        userdata = mqtt_args
-    )
+    client = mqtt.Client(callback_api_version = mqtt.CallbackAPIVersion.VERSION2, userdata = mqtt_args)
 
     client.on_connect = on_connect
     client.on_message = on_message
-
-    messenger = Messenger(dry_run = args.dry_run)
-
-    mqtt_args['messenger'] = messenger
 
     try:
         client.connect(f"{MQTT_LISTEN_IP}", MQTT_LISTEN_PORT, MQTT_KEEP_ALIVE)
@@ -177,18 +161,8 @@ def main():
         print(f"{RED}[!] Could not connect to {MQTT_LISTEN_IP}! {e}{RESET}")
         raise SystemExit(1)
 
-    asl_lost = False
-
     try:
         while True:
-            elapsed = time.monotonic() - messenger.last_asl_time
-            if elapsed > ASL_TIMEOUT:
-                if not asl_lost:
-                    asl_lost = True
-                    print(f"{YELLOW} No ASL found for {ASL_TIMEOUT}s! Chill mode disengaging now!{RESET}")
-                messenger.publish_asl_lost()
-            else:
-                asl_lost
             if connection_failed.is_set():
                 print(f"{RED}[!] Network loop died! Exiting!{RESET}")
                 raise SystemExit(1)

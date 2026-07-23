@@ -87,7 +87,7 @@ class SelfdriveD:
                                    'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'livePose', 'liveDelay',
                                    'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
                                    'controlsState', 'carControl', 'driverAssistance', 'alertDebug', 'userBookmark', 'audioFeedback',
-                                   'lateralManeuverPlan', 'advisorySpeedLimit'] + \
+                                   'lateralManeuverPlan'] + \
                                    self.camera_packets + self.sensor_packets + self.gps_packets,
                                   ignore_alive=ignore, ignore_avg_freq=ignore,
                                   ignore_valid=ignore, frequency=int(1/DT_CTRL))
@@ -127,7 +127,6 @@ class SelfdriveD:
     self.dm_uncertain_alerted = False
     self.state_machine = StateMachine()
     self.rk = Ratekeeper(100, print_delay_threshold=None)
-    self.last_asl_time = 0.0
 
     # Determine startup event
     self.startup_event = EventName.startup if build_metadata.openpilot.comma_remote and build_metadata.tested_channel else EventName.startupMaster
@@ -169,17 +168,7 @@ class SelfdriveD:
 
     # Don't add any more events if not initialized
     if not self.initialized:
-      self.last_asl_time = 0.0
-      self.asl_reported_valid = False
-
       self.events.add(EventName.selfdriveInitializing)
-      ASL_TIMEOUT = 5.0
-      if self.sm.updated['advisorySpeedLimit']:
-        self.last_asl_time = time.monotonic()
-        self.asl_reported_valid = self.sm['advisorySpeedLimit'].valid
-      asl_silent = (time.monotonic() - self.last_asl_time) > ASL_TIMEOUT
-      if not self.asl_reported_valid or asl_silent:
-        self.events.add(EventName.advisorySpeedLost)
       return
 
     # Check for user bookmark press (bookmark button or end of LKAS button feedback)
